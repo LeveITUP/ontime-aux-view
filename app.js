@@ -113,15 +113,15 @@ const config = getConfig();
 
 function applyConfig(cfg) {
   const root = document.documentElement;
-  if (cfg.color) root.style.setProperty("--color", cfg.color);
-  if (cfg.warnColor) root.style.setProperty("--warn-color", cfg.warnColor);
-  if (cfg.noticeColor) root.style.setProperty("--notice-color", cfg.noticeColor);
+  if (cfg.color) root.style.setProperty("--color", normaliseColor(cfg.color));
+  if (cfg.warnColor) root.style.setProperty("--warn-color", normaliseColor(cfg.warnColor));
+  if (cfg.noticeColor) root.style.setProperty("--notice-color", normaliseColor(cfg.noticeColor));
   if (cfg.fontSize) root.style.setProperty("--time-size", withUnit(cfg.fontSize));
   if (cfg.stroke) root.style.setProperty("--ring-width", cfg.stroke);
-  if (cfg.fill) root.style.setProperty("--fill-color", cfg.fill);
-  if (cfg.ringOutline) root.style.setProperty("--ring-outline-color", cfg.ringOutline);
+  if (cfg.fill) root.style.setProperty("--fill-color", normaliseColor(cfg.fill));
+  if (cfg.ringOutline) root.style.setProperty("--ring-outline-color", normaliseColor(cfg.ringOutline));
   if (cfg.ringOutlineWidth) root.style.setProperty("--ring-outline-width", cfg.ringOutlineWidth);
-  if (cfg.fontOutline) root.style.setProperty("--font-outline-color", cfg.fontOutline);
+  if (cfg.fontOutline) root.style.setProperty("--font-outline-color", normaliseColor(cfg.fontOutline));
   if (cfg.fontOutlineWidth) root.style.setProperty("--font-outline-width", withUnit(cfg.fontOutlineWidth));
   if (cfg.transparent) document.body.classList.add("transparent");
   if (!cfg.showLabels) document.body.classList.add("no-labels");
@@ -130,6 +130,16 @@ function applyConfig(cfg) {
 // Bare numbers are treated as pixels; anything else is passed through as-is.
 function withUnit(value) {
   return /^\d+(\.\d+)?$/.test(value) ? `${value}px` : value;
+}
+
+// Allow hex colours to be passed without the leading "#" (which, unencoded in a
+// URL, would start the fragment and be dropped). A bare 3/4/6/8-digit hex string
+// gets a "#" prepended; named colours and rgb()/hsl() values pass through.
+function normaliseColor(value) {
+  if (/^[0-9a-fA-F]+$/.test(value) && [3, 4, 6, 8].includes(value.length)) {
+    return `#${value}`;
+  }
+  return value;
 }
 
 applyConfig(config);

@@ -69,10 +69,12 @@ Examples:
 ?transparent&fill=%2300000080&ringoutline=white&fontoutline=black   # overlay chip
 ```
 
-> Note: when passing a hex colour, URL-encode the `#` as `%23`, or just use a
-> named colour like `white`, `red`, `yellow`. Colours for `fill`, `fontoutline`
-> and the others accept transparency — use an 8-digit hex (`#RRGGBBAA`, e.g.
-> `%2300000080` for 50% black) or an `rgba(...)` value.
+> Note: a raw `#` in a URL starts the *fragment*, so hex colours need care.
+> Either **drop the `#`** (e.g. `fill=ECC04080`) or URL-encode it as `%23`
+> (e.g. `fill=%23ECC04080`) — both work. You can also use a named colour like
+> `white`, `red`, `yellow`. Colours for `fill`, `fontoutline` and the others
+> accept transparency — use an 8-digit hex (`RRGGBBAA`, e.g. `00000080` for 50%
+> black) or an `rgba(...)` value.
 
 ### What the options look like
 
