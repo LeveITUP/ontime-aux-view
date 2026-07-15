@@ -10,6 +10,8 @@ The view connects to Ontime's WebSocket runtime stream and updates live.
 - Custom views: https://docs.getontime.no/features/custom-views/
 - Runtime data: https://docs.getontime.no/api/data/runtime-data/
 
+![Aux 1, Aux 2 and Aux 3 timers](docs/images/overview.png)
+
 ## Files
 
 | File         | Purpose                                            |
@@ -64,6 +66,47 @@ Examples:
 > Note: when passing a hex colour, URL-encode the `#` as `%23`, or just use a
 > named colour like `white`, `red`, `yellow`.
 
+### What the options look like
+
+<table>
+  <tr>
+    <td align="center">
+      <code>?warn=10&amp;warncolor=red</code><br>
+      <img src="docs/images/warn.png" alt="Warning state" width="260">
+    </td>
+    <td align="center">
+      <code>?notice=15&amp;warn=10</code><br>
+      <img src="docs/images/notice.png" alt="Notice state" width="260">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <code>?seconds</code><br>
+      <img src="docs/images/seconds.png" alt="Seconds-only display" width="260">
+    </td>
+    <td align="center">
+      <code>?color=%23ffcc00&amp;warn=15</code><br>
+      <img src="docs/images/color.png" alt="Custom colour" width="260">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <code>?transparent</code> (shown over a stage backdrop)<br>
+      <img src="docs/images/transparent.png" alt="Transparent overlay" width="260">
+    </td>
+    <td align="center">
+      Production preset<br>
+      <img src="docs/images/production.png" alt="Production preset" width="260">
+    </td>
+  </tr>
+</table>
+
+The production preset above is:
+
+```
+?warn=10&aux=1&labels=off&fontsize=120&flash&stopatzero&lastminute&notice=15
+```
+
 ## Deploying to Ontime
 
 Ontime serves any folder placed inside its `external/` directory. Copy this
@@ -107,6 +150,11 @@ python3 -m http.server 8000
 ```
 
 Then open http://localhost:8000/?demo=1
+
+In demo mode you can also preset a timer's value and freeze it (handy for
+screenshots): `?d1=8` / `?d2=45` / `?d3=12` set each timer's current value in
+seconds, and `?freeze` holds them still. For example
+`?demo&aux=1&warn=10&d1=8&freeze`.
 
 ## Connecting to a remote Ontime server
 

@@ -429,7 +429,20 @@ function startDemo() {
     auxtimer3: { duration: 120000, current: 90000, playback: "pause", direction: "count-down" },
   };
 
+  // Optional overrides (handy for demos / documentation screenshots):
+  //   ?d1=8  ?d2=45  ?d3=12   set the current value (seconds) of each timer
+  //   ?freeze                 hold the timers at their current value
+  const params = new URLSearchParams(window.location.search);
+  ["auxtimer1", "auxtimer2", "auxtimer3"].forEach((key, i) => {
+    const raw = params.get(`d${i + 1}`);
+    if (raw != null && Number.isFinite(Number(raw))) {
+      demo[key].current = Number(raw) * 1000;
+    }
+  });
+  const frozen = params.has("freeze");
+
   handleOntimePayload(demo);
+  if (frozen) return;
 
   setInterval(() => {
     for (const key of AUX_KEYS) {
