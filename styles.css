@@ -1,0 +1,205 @@
+:root {
+  --bg: #0b0d12;
+  --card-bg: #12151d;
+  --track: #232836;
+  --text: #f4f6fb;
+  --muted: #8a93a6;
+
+  /* Main colour of the ring + digits, the intermediate notice colour, and the
+     near-end warning colour. Override with ?color=, ?noticecolor=, ?warncolor= */
+  --color: #ffffff;
+  --notice-color: #ff9500;
+  --warn-color: #ff3b30;
+
+  /* Timer digit size and ring stroke width (?fontsize= and ?stroke=) */
+  --time-size: clamp(2rem, 6vw, 4rem);
+  --ring-width: 12;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Transparent mode for compositing over video (vMix / OBS) */
+body.transparent {
+  background: transparent;
+}
+body.transparent .status {
+  display: none;
+}
+
+.stage {
+  display: flex;
+  gap: clamp(1.5rem, 5vw, 5rem);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 2rem;
+}
+
+/* ---- Aux timer card ---- */
+.aux {
+  position: relative;
+  width: clamp(200px, 26vw, 380px);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  width: 100%;
+  height: 100%;
+  /* Rotate so the stroke starts at 12 o'clock and fills clockwise */
+  transform: rotate(-90deg);
+}
+
+.ring__track,
+.ring__progress {
+  fill: none;
+  stroke-width: var(--ring-width);
+  stroke-linecap: round;
+}
+
+.ring__track {
+  stroke: var(--track);
+}
+
+.ring__progress {
+  /* the pathLength="100" attribute normalises the circle length to 100 */
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100; /* 100 = empty, 0 = full */
+  stroke: var(--color);
+  transition: stroke-dashoffset 0.35s linear, stroke 0.3s ease;
+}
+
+/* Count-up timers don't use the progress ring (it's redundant) */
+.aux[data-direction="count-up"] .ring__progress {
+  display: none;
+}
+
+/* Intermediate notice state, before the warning kicks in */
+.aux.is-notice .ring__progress {
+  stroke: var(--notice-color);
+}
+.aux.is-notice .aux__time {
+  color: var(--notice-color);
+}
+
+/* Near the end of a count-down: switch ring + digits to the warning colour */
+.aux.is-warning .ring__progress {
+  stroke: var(--warn-color);
+}
+.aux.is-warning .aux__time {
+  color: var(--warn-color);
+}
+
+/* Flash the digits once per second during the warning period */
+@keyframes aux-flash {
+  0%,
+  82% {
+    opacity: 1;
+  }
+  83%,
+  92% {
+    opacity: 0;
+  }
+  93%,
+  100% {
+    opacity: 1;
+  }
+}
+.aux.is-flashing .aux__time {
+  animation: aux-flash 1s linear infinite;
+}
+
+.aux__center {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* The digits are centred on the exact centre of the circle, independent of
+   font size or how many digits are shown (tabular-nums keeps them the same
+   width, and centring on the mid-point keeps them put as the count changes). */
+.aux__time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + var(--time-shift, 0px)));
+  font-size: var(--time-size);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  color: var(--color);
+}
+
+/* The label is positioned independently so it never shifts the digits */
+.aux__label {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  transform: translateX(-50%);
+  font-size: clamp(0.75rem, 1.6vw, 1.1rem);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* Hide the timer name when labels are turned off */
+body.no-labels .aux__label {
+  display: none;
+}
+
+/* ---- Connection status pill ---- */
+.status {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: var(--card-bg);
+  font-size: 0.8rem;
+  color: var(--muted);
+  z-index: 10;
+}
+
+.status__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status--open .status__dot {
+  background: #35d07f;
+}
+.status--connecting .status__dot {
+  background: #f5b83d;
+}
+.status--closed .status__dot {
+  background: #ff5a5a;
+}
