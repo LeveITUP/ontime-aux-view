@@ -49,6 +49,11 @@ together with `aux`, `server` and `token`.
 | `offset`       | `?offset=1`          | Seconds early the ring reaches full (default 1) so it completes at 0:00 |
 | `fontsize`     | `?fontsize=6rem`     | Size of the timer digits. Bare numbers are treated as px            |
 | `stroke`       | `?stroke=20`         | Ring stroke width (SVG units, viewBox is 200×200; default 12)        |
+| `fill`         | `?fill=%2300000080`  | Fill the circle behind the digits. Accepts alpha (e.g. `#00000080`)  |
+| `ringoutline`  | `?ringoutline=white` | Outline along the inner + outer edges of the ring. Any CSS colour    |
+| `ringoutlinewidth` | `?ringoutlinewidth=3` | Ring outline thickness (SVG units; default 2)                  |
+| `fontoutline`  | `?fontoutline=black` | Outline around the digits. Any CSS colour (accepts alpha)            |
+| `fontoutlinewidth` | `?fontoutlinewidth=4` | Font outline thickness. Bare numbers are px (default 2)         |
 | `labels`       | `?labels=off`        | Show or hide the timer name (default on). off/false/0/hide to hide   |
 | `seconds`      | `?seconds`           | Show a plain seconds count (`90`) instead of `M:SS` (`1:30`)       |
 | `lastminute`   | `?lastminute`        | Switch to seconds-only (`45`) in the final minute of a count-down   |
@@ -61,10 +66,13 @@ Examples:
 ?notice=15&warn=10                     # orange at 15s, then red at 10s
 ?seconds                               # 90 instead of 1:30
 ?color=%23ffcc00&warn=15               # amber digits, warn at 15s (# = %23)
+?transparent&fill=%2300000080&ringoutline=white&fontoutline=black   # overlay chip
 ```
 
 > Note: when passing a hex colour, URL-encode the `#` as `%23`, or just use a
-> named colour like `white`, `red`, `yellow`.
+> named colour like `white`, `red`, `yellow`. Colours for `fill`, `fontoutline`
+> and the others accept transparency — use an 8-digit hex (`#RRGGBBAA`, e.g.
+> `%2300000080` for 50% black) or an `rgba(...)` value.
 
 ### What the options look like
 
@@ -97,6 +105,12 @@ Examples:
     <td align="center">
       Production preset<br>
       <img src="docs/images/production.png" alt="Production preset" width="260">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <code>?transparent&amp;fill=%2300000080&amp;ringoutline=white&amp;fontoutline=black</code><br>
+      <img src="docs/images/overlay.png" alt="Circle fill with ring and font outlines over video" width="420">
     </td>
   </tr>
 </table>

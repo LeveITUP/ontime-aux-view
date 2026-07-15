@@ -20,8 +20,11 @@
     <template id="aux-card-template">
       <section class="aux" data-playback="stop">
         <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="ring__fill" cx="100" cy="100" r="90" />
           <circle class="ring__track" cx="100" cy="100" r="90" />
           <circle class="ring__progress" cx="100" cy="100" r="90" pathLength="100" />
+          <circle class="ring__outline ring__outline--outer" cx="100" cy="100" />
+          <circle class="ring__outline ring__outline--inner" cx="100" cy="100" />
         </svg>
         <div class="aux__center">
           <div class="aux__time">--:--</div>

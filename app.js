@@ -86,6 +86,11 @@ function getConfig() {
     offsetSeconds,
     fontSize: p.get("fontsize"),
     stroke: p.get("stroke"),
+    fill: p.get("fill"),
+    ringOutline: p.get("ringoutline"),
+    ringOutlineWidth: p.get("ringoutlinewidth"),
+    fontOutline: p.get("fontoutline"),
+    fontOutlineWidth: p.get("fontoutlinewidth"),
     showLabels: parseToggle(p.get("labels"), true),
     stopAtZero: p.has("stopatzero"),
     flash: p.has("flash"),
@@ -113,6 +118,11 @@ function applyConfig(cfg) {
   if (cfg.noticeColor) root.style.setProperty("--notice-color", cfg.noticeColor);
   if (cfg.fontSize) root.style.setProperty("--time-size", withUnit(cfg.fontSize));
   if (cfg.stroke) root.style.setProperty("--ring-width", cfg.stroke);
+  if (cfg.fill) root.style.setProperty("--fill-color", cfg.fill);
+  if (cfg.ringOutline) root.style.setProperty("--ring-outline-color", cfg.ringOutline);
+  if (cfg.ringOutlineWidth) root.style.setProperty("--ring-outline-width", cfg.ringOutlineWidth);
+  if (cfg.fontOutline) root.style.setProperty("--font-outline-color", cfg.fontOutline);
+  if (cfg.fontOutlineWidth) root.style.setProperty("--font-outline-width", withUnit(cfg.fontOutlineWidth));
   if (cfg.transparent) document.body.classList.add("transparent");
   if (!cfg.showLabels) document.body.classList.add("no-labels");
 }

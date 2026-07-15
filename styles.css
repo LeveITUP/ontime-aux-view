@@ -14,6 +14,15 @@
   /* Timer digit size and ring stroke width (?fontsize= and ?stroke=) */
   --time-size: clamp(2rem, 6vw, 4rem);
   --ring-width: 12;
+
+  /* Optional circle background fill (?fill=), ring outline (?ringoutline=,
+     ?ringoutlinewidth=) and font outline (?fontoutline=, ?fontoutlinewidth=).
+     Colours accept transparency (e.g. #00000080 or rgba(...)). */
+  --fill-color: transparent;
+  --ring-outline-color: transparent;
+  --ring-outline-width: 2;
+  --font-outline-color: transparent;
+  --font-outline-width: 2px;
 }
 
 * {
@@ -76,6 +85,24 @@ body.transparent .status {
   fill: none;
   stroke-width: var(--ring-width);
   stroke-linecap: round;
+}
+
+/* Optional filled disc behind the digits (handy over a transparent background) */
+.ring__fill {
+  fill: var(--fill-color);
+}
+
+/* Optional outline drawn along the inner and outer edges of the ring band */
+.ring__outline {
+  fill: none;
+  stroke: var(--ring-outline-color);
+  stroke-width: var(--ring-outline-width);
+}
+.ring__outline--outer {
+  r: calc((90 + var(--ring-width) / 2) * 1px);
+}
+.ring__outline--inner {
+  r: calc((90 - var(--ring-width) / 2) * 1px);
 }
 
 .ring__track {
@@ -151,6 +178,9 @@ body.transparent .status {
   white-space: nowrap;
   text-align: center;
   color: var(--color);
+  /* Optional text outline; drawn behind the fill so glyphs stay crisp */
+  -webkit-text-stroke: var(--font-outline-width) var(--font-outline-color);
+  paint-order: stroke fill;
 }
 
 /* The label is positioned independently so it never shifts the digits */
