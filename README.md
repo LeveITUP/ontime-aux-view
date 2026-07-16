@@ -39,6 +39,7 @@ together with `aux`, `server` and `token`.
 | Option         | Example              | Effect                                                            |
 | -------------- | -------------------- | ----------------------------------------------------------------- |
 | `transparent`  | `?transparent`       | Transparent background for compositing in vMix / OBS              |
+| `bg`           | `?bg=00b140`         | Page background colour, e.g. a green-screen key colour             |
 | `color`        | `?color=white`       | Main colour of the ring and digits (default white). Any CSS colour |
 | `warn`         | `?warn=10`           | Seconds left on a count-down before switching to the warning colour |
 | `warncolor`    | `?warncolor=red`     | Colour used for the warning (default red). Any CSS colour          |
@@ -62,6 +63,7 @@ Examples:
 
 ```
 ?transparent&aux=1                     # single timer, transparent overlay
+?bg=00b140&aux=1                       # green-screen background for chroma key
 ?warn=10&warncolor=red                 # go red in the last 10 seconds
 ?notice=15&warn=10                     # orange at 15s, then red at 10s
 ?seconds                               # 90 instead of 1:30

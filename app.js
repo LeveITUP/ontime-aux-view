@@ -78,6 +78,7 @@ function getConfig() {
 
   return {
     transparent: p.has("transparent"),
+    bg: p.get("bg"),
     color: p.get("color"),
     warnColor: p.get("warncolor"),
     warnSeconds,
@@ -113,6 +114,7 @@ const config = getConfig();
 
 function applyConfig(cfg) {
   const root = document.documentElement;
+  if (cfg.bg) root.style.setProperty("--bg", normaliseColor(cfg.bg));
   if (cfg.color) root.style.setProperty("--color", normaliseColor(cfg.color));
   if (cfg.warnColor) root.style.setProperty("--warn-color", normaliseColor(cfg.warnColor));
   if (cfg.noticeColor) root.style.setProperty("--notice-color", normaliseColor(cfg.noticeColor));
