@@ -273,6 +273,11 @@ body.ui-active .settings-cog {
   opacity: 1;
 }
 
+/* Fullscreen toggle sits just below the settings cog */
+.settings-cog--fs {
+  top: 4.1rem;
+}
+
 .settings-panel {
   position: fixed;
   top: 0;
@@ -400,5 +405,19 @@ body.panel-open .settings-panel {
   font: inherit;
 }
 .settings-panel__footer button:hover {
+  background: #303030;
+}
+
+.settings-panel__fullscreen {
+  margin: 0 1rem 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid #2d2d2d;
+  border-radius: 3px;
+  background: #262626;
+  color: #ececec;
+  cursor: pointer;
+  font: inherit;
+}
+.settings-panel__fullscreen:hover {
   background: #303030;
 }

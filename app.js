@@ -568,6 +568,24 @@ const SETTINGS_GROUPS = [
   },
 ];
 
+// Corner-bracket icon for the fullscreen button; inward brackets when active.
+function fullscreenIcon(active) {
+  const pts = active
+    ? ["176 80 176 176 80 176", "336 80 336 176 432 176", "80 336 176 336 176 432", "432 336 336 336 336 432"]
+    : ["176 80 80 80 80 176", "336 80 432 80 432 176", "176 432 80 432 80 336", "336 432 432 432 432 336"];
+  return (
+    '<svg viewBox="0 0 512 512" aria-hidden="true">' +
+    pts
+      .map(
+        (p) =>
+          `<polyline points="${p}" fill="none" stroke="currentColor" ` +
+          'stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/>'
+      )
+      .join("") +
+    "</svg>"
+  );
+}
+
 function initSettings() {
   const cog = document.createElement("button");
   cog.className = "settings-cog";
@@ -578,6 +596,11 @@ function initSettings() {
     '<svg viewBox="0 0 512 512" aria-hidden="true">' +
     '<path d="M262.29 192.31a64 64 0 1 0 57.4 57.4 64.13 64.13 0 0 0-57.4-57.4zM416.39 256a154.34 154.34 0 0 1-1.53 20.79l45.21 35.46a10.81 10.81 0 0 1 2.45 13.75l-42.77 74a10.81 10.81 0 0 1-13.14 4.59l-44.9-18.08a16.11 16.11 0 0 0-15.17 1.75A164.48 164.48 0 0 1 325 400.8a15.94 15.94 0 0 0-8.82 12.14l-6.73 47.89a11.08 11.08 0 0 1-10.68 9.17h-85.54a11.11 11.11 0 0 1-10.69-8.87l-6.72-47.82a16.07 16.07 0 0 0-9-12.22 155.3 155.3 0 0 1-21.46-12.57 16 16 0 0 0-15.11-1.71l-44.89 18.07a10.81 10.81 0 0 1-13.14-4.58l-42.77-74a10.8 10.8 0 0 1 2.45-13.75l38.21-30a16.05 16.05 0 0 0 6-14.08c-.36-4.17-.58-8.34-.58-12.5s.21-8.27.58-12.35a16 16 0 0 0-6.07-13.94l-38.19-30A10.81 10.81 0 0 1 49.48 186l42.77-74a10.81 10.81 0 0 1 13.14-4.59l44.9 18.08a16.11 16.11 0 0 0 15.17-1.75A164.48 164.48 0 0 1 187 111.2a15.94 15.94 0 0 0 8.82-12.14l6.73-47.89A11.08 11.08 0 0 1 213.23 42h85.54a11.11 11.11 0 0 1 10.69 8.87l6.72 47.82a16.07 16.07 0 0 0 9 12.22 155.3 155.3 0 0 1 21.46 12.57 16 16 0 0 0 15.11 1.71l44.89-18.07a10.81 10.81 0 0 1 13.14 4.58l42.77 74a10.8 10.8 0 0 1-2.45 13.75l-38.21 30a16.05 16.05 0 0 0-6 14.08c.36 4.16.58 8.32.58 12.49z" ' +
     'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>';
+
+  // Fullscreen toggle button, styled like the cog and sitting just below it
+  const fsBtn = document.createElement("button");
+  fsBtn.className = "settings-cog settings-cog--fs";
+  fsBtn.type = "button";
 
   const panel = document.createElement("aside");
   panel.className = "settings-panel";
@@ -677,6 +700,11 @@ function initSettings() {
   footer.appendChild(copyBtn);
   footer.appendChild(resetBtn);
 
+  const fsMenuBtn = document.createElement("button");
+  fsMenuBtn.type = "button";
+  fsMenuBtn.className = "settings-panel__fullscreen";
+  fsMenuBtn.textContent = "Fullscreen";
+  panel.appendChild(fsMenuBtn);
   panel.appendChild(footer);
 
   // Serialise the form back into the URL and apply it live.
@@ -748,6 +776,24 @@ function initSettings() {
     resetIdle();
   }
 
+  // Fullscreen toggle (floating button + menu entry stay in sync)
+  function updateFullscreenUi() {
+    const active = !!document.fullscreenElement;
+    fsBtn.innerHTML = fullscreenIcon(active);
+    const label = active ? "Exit fullscreen" : "Fullscreen";
+    fsBtn.title = label;
+    fsBtn.setAttribute("aria-label", label);
+    fsMenuBtn.textContent = label;
+  }
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => {});
+  }
+  fsBtn.addEventListener("click", toggleFullscreen);
+  fsMenuBtn.addEventListener("click", toggleFullscreen);
+  document.addEventListener("fullscreenchange", updateFullscreenUi);
+  updateFullscreenUi();
+
   cog.addEventListener("click", () => (panelOpen ? closePanel() : openPanel()));
   closeBtn.addEventListener("click", closePanel);
   document.addEventListener("mousemove", showUi);
@@ -757,6 +803,7 @@ function initSettings() {
   });
 
   document.body.appendChild(cog);
+  document.body.appendChild(fsBtn);
   document.body.appendChild(panel);
   resetIdle();
 }
