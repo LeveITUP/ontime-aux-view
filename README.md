@@ -31,10 +31,26 @@ white digits are shown.
 By default the ring and digits are **white**. When a count-down gets close to
 zero (see the `warn` option) they switch to the warning colour (red by default).
 
+## Settings panel
+
+Every option can also be set from an on-screen **settings panel** instead of
+hand-editing the URL. Move the mouse and a gear icon appears in the top-left
+corner (it fades away again when the mouse is idle); click it to open the panel.
+
+Changes apply live and are written back into the URL query, so — just like
+Ontime's own views — the current look is fully described by the link. Use
+**Copy link** to grab that URL (handy for deploying or for Ontime's URL
+Presets), or **Reset** to clear everything back to defaults.
+
+The **connection indicator** (top-right) only appears when there's a problem:
+it shows while connecting or disconnected, and after a successful connection it
+lingers for a few seconds so you can confirm all is well, then fades out.
+
 ## Display options
 
-All options are set via URL query params and can be combined. They also work
-together with `aux`, `server` and `token`.
+Every setting below is available in the panel and as a URL query param (the
+panel just edits these). They can be combined, and also work together with
+`aux`, `server` and `token`.
 
 | Option         | Example              | Effect                                                            |
 | -------------- | -------------------- | ----------------------------------------------------------------- |
@@ -186,3 +202,11 @@ index.html?server=192.168.1.10:4001&token=YOUR_TOKEN
 
 Get the token from Ontime via *Editor → Settings → Share link* with
 "Authenticate Link" enabled.
+
+## Support
+
+If you find this useful, you can support development:
+
+<a href="https://buymeacoffee.com/marcus.levelitup" target="_blank"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-marcus.levelitup-ffca28?logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a>
+
+[buymeacoffee.com/marcus.levelitup](https://buymeacoffee.com/marcus.levelitup)

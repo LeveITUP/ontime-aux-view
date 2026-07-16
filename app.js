@@ -47,16 +47,9 @@ function getSelectedAuxKeys() {
   return unique.length > 0 ? unique : ALL_AUX_KEYS;
 }
 
-const AUX_KEYS = getSelectedAuxKeys();
+let selectedKeys = getSelectedAuxKeys();
 
-/**
- * Read display options from query params.
- *   ?transparent          -> transparent background (for vMix / OBS overlays)
- *   ?color=<css colour>   -> main colour of the ring and digits (default white)
- *   ?warn=<seconds>       -> turn red when a count-down has this many seconds left
- *   ?warncolor=<css col>  -> colour to use for the warning (default red)
- *   ?seconds              -> show a plain seconds count (90) instead of M:SS (1:30)
- */
+/** Read all display options from the current URL query params. */
 function getConfig() {
   const p = new URLSearchParams(window.location.search);
   const warnRaw = p.get("warn");
@@ -110,23 +103,30 @@ function parseToggle(raw, fallback) {
   return fallback;
 }
 
-const config = getConfig();
+let config = getConfig();
+
+// Set a CSS variable when a value is provided, otherwise remove it so the
+// stylesheet default applies again (used when clearing an option live).
+function setVar(name, value) {
+  const root = document.documentElement;
+  if (value) root.style.setProperty(name, value);
+  else root.style.removeProperty(name);
+}
 
 function applyConfig(cfg) {
-  const root = document.documentElement;
-  if (cfg.bg) root.style.setProperty("--bg", normaliseColor(cfg.bg));
-  if (cfg.color) root.style.setProperty("--color", normaliseColor(cfg.color));
-  if (cfg.warnColor) root.style.setProperty("--warn-color", normaliseColor(cfg.warnColor));
-  if (cfg.noticeColor) root.style.setProperty("--notice-color", normaliseColor(cfg.noticeColor));
-  if (cfg.fontSize) root.style.setProperty("--time-size", withUnit(cfg.fontSize));
-  if (cfg.stroke) root.style.setProperty("--ring-width", cfg.stroke);
-  if (cfg.fill) root.style.setProperty("--fill-color", normaliseColor(cfg.fill));
-  if (cfg.ringOutline) root.style.setProperty("--ring-outline-color", normaliseColor(cfg.ringOutline));
-  if (cfg.ringOutlineWidth) root.style.setProperty("--ring-outline-width", cfg.ringOutlineWidth);
-  if (cfg.fontOutline) root.style.setProperty("--font-outline-color", normaliseColor(cfg.fontOutline));
-  if (cfg.fontOutlineWidth) root.style.setProperty("--font-outline-width", withUnit(cfg.fontOutlineWidth));
-  if (cfg.transparent) document.body.classList.add("transparent");
-  if (!cfg.showLabels) document.body.classList.add("no-labels");
+  setVar("--bg", cfg.bg && normaliseColor(cfg.bg));
+  setVar("--color", cfg.color && normaliseColor(cfg.color));
+  setVar("--warn-color", cfg.warnColor && normaliseColor(cfg.warnColor));
+  setVar("--notice-color", cfg.noticeColor && normaliseColor(cfg.noticeColor));
+  setVar("--time-size", cfg.fontSize && withUnit(cfg.fontSize));
+  setVar("--ring-width", cfg.stroke || null);
+  setVar("--fill-color", cfg.fill && normaliseColor(cfg.fill));
+  setVar("--ring-outline-color", cfg.ringOutline && normaliseColor(cfg.ringOutline));
+  setVar("--ring-outline-width", cfg.ringOutlineWidth || null);
+  setVar("--font-outline-color", cfg.fontOutline && normaliseColor(cfg.fontOutline));
+  setVar("--font-outline-width", cfg.fontOutlineWidth && withUnit(cfg.fontOutlineWidth));
+  document.body.classList.toggle("transparent", !!cfg.transparent);
+  document.body.classList.toggle("no-labels", !cfg.showLabels);
 }
 
 // Bare numbers are treated as pixels; anything else is passed through as-is.
@@ -189,21 +189,28 @@ const stage = document.querySelector(".stage");
 const template = document.getElementById("aux-card-template");
 
 /** Map of aux key -> { root, time, label, progress } */
-const cards = {};
+let cards = {};
 
-for (const key of AUX_KEYS) {
-  const fragment = template.content.cloneNode(true);
-  const root = fragment.querySelector(".aux");
-  const time = fragment.querySelector(".aux__time");
-  const label = fragment.querySelector(".aux__label");
-  const progress = fragment.querySelector(".ring__progress");
+/** (Re)build the timer cards for the currently selected keys. */
+function buildCards() {
+  stage.innerHTML = "";
+  cards = {};
+  for (const key of selectedKeys) {
+    const fragment = template.content.cloneNode(true);
+    const root = fragment.querySelector(".aux");
+    const time = fragment.querySelector(".aux__time");
+    const label = fragment.querySelector(".aux__label");
+    const progress = fragment.querySelector(".ring__progress");
 
-  label.textContent = AUX_LABELS[key];
-  root.dataset.key = key;
+    label.textContent = AUX_LABELS[key];
+    root.dataset.key = key;
 
-  stage.appendChild(fragment);
-  cards[key] = { root, time, label, progress };
+    stage.appendChild(fragment);
+    cards[key] = { root, time, label, progress };
+  }
 }
+
+buildCards();
 
 // ---------------------------------------------------------------------------
 // Vertical centring correction
@@ -217,7 +224,7 @@ for (const key of AUX_KEYS) {
  * the true centre of the circle regardless of font, size or digit count.
  */
 function alignDigits() {
-  const sample = cards[AUX_KEYS[0]] && cards[AUX_KEYS[0]].time;
+  const sample = cards[selectedKeys[0]] && cards[selectedKeys[0]].time;
   if (!sample) return;
 
   const cs = getComputedStyle(sample);
@@ -361,22 +368,40 @@ function renderAux(key, aux) {
 
 const statusEl = document.getElementById("status");
 const statusLabel = statusEl.querySelector(".status__label");
+let statusHideTimer = null;
 
+// The pill is only meant to be visible when something is wrong. When connected
+// (or in demo mode) it lingers a few seconds so the operator can confirm all is
+// well, then fades out. While connecting or disconnected it stays visible.
 function setStatus(state, text) {
   statusEl.className = `status status--${state}`;
   statusLabel.textContent = text;
+  clearTimeout(statusHideTimer);
+  if (state === "open") {
+    statusHideTimer = setTimeout(() => statusEl.classList.add("status--hidden"), 4000);
+  }
 }
 
 /**
  * Apply an Ontime payload. The payload may contain any subset of the runtime
  * state; we only care about the aux timer objects.
  */
+const lastData = {};
+
 function handleOntimePayload(payload) {
   if (!payload || typeof payload !== "object") return;
-  for (const key of AUX_KEYS) {
+  for (const key of ALL_AUX_KEYS) {
     if (key in payload) {
-      renderAux(key, payload[key]);
+      lastData[key] = payload[key];
+      if (cards[key]) renderAux(key, payload[key]);
     }
+  }
+}
+
+/** Re-render the currently shown timers from the last received data. */
+function rerender() {
+  for (const key of selectedKeys) {
+    if (lastData[key]) renderAux(key, lastData[key]);
   }
 }
 
@@ -467,7 +492,7 @@ function startDemo() {
   if (frozen) return;
 
   setInterval(() => {
-    for (const key of AUX_KEYS) {
+    for (const key of ALL_AUX_KEYS) {
       const t = demo[key];
       if (t.playback !== "play") continue;
       t.current += t.direction === "count-up" ? 1000 : -1000;
@@ -478,8 +503,272 @@ function startDemo() {
   }, 1000);
 }
 
+// ---------------------------------------------------------------------------
+// Settings panel (View Parameters Editor)
+// ---------------------------------------------------------------------------
+// Settings live in the URL query (shareable, like Ontime's own views). The
+// panel edits those params, updates the URL and re-applies everything live.
+
+function arraysEqual(a, b) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+// Re-read config from the current URL and apply it live.
+function applyFromUrl() {
+  config = getConfig();
+  applyConfig(config);
+  const newKeys = getSelectedAuxKeys();
+  if (!arraysEqual(newKeys, selectedKeys)) {
+    selectedKeys = newKeys;
+    buildCards();
+  }
+  alignDigits();
+  rerender();
+}
+
+// Field definitions grouped for the form.
+//   type: "text" | "number" | "flag" | "labels"
+const SETTINGS_GROUPS = [
+  {
+    title: "Appearance",
+    fields: [
+      { param: "color", label: "Main colour", type: "text", placeholder: "white" },
+      { param: "bg", label: "Background colour", type: "text", placeholder: "e.g. 00b140" },
+      { param: "transparent", label: "Transparent background", type: "flag" },
+      { param: "fill", label: "Circle fill", type: "text", placeholder: "e.g. 00000080" },
+      { param: "fontsize", label: "Font size", type: "text", placeholder: "e.g. 120 or 6rem" },
+      { param: "stroke", label: "Ring thickness", type: "text", placeholder: "12" },
+      { param: "ringoutline", label: "Ring outline", type: "text", placeholder: "none" },
+      { param: "ringoutlinewidth", label: "Ring outline width", type: "text", placeholder: "2" },
+      { param: "fontoutline", label: "Font outline", type: "text", placeholder: "none" },
+      { param: "fontoutlinewidth", label: "Font outline width", type: "text", placeholder: "2" },
+      { param: "labels", label: "Show timer name", type: "labels" },
+    ],
+  },
+  {
+    title: "Countdown behaviour",
+    fields: [
+      { param: "notice", label: "Notice at (seconds)", type: "number", placeholder: "off" },
+      { param: "noticecolor", label: "Notice colour", type: "text", placeholder: "orange" },
+      { param: "warn", label: "Warning at (seconds)", type: "number", placeholder: "off" },
+      { param: "warncolor", label: "Warning colour", type: "text", placeholder: "red" },
+      { param: "flash", label: "Flash digits when warning", type: "flag" },
+      { param: "stopatzero", label: "Stop at zero", type: "flag" },
+      { param: "seconds", label: "Seconds-only display", type: "flag" },
+      { param: "lastminute", label: "Seconds-only in last minute", type: "flag" },
+      { param: "offset", label: "Ring fill offset (seconds)", type: "number", placeholder: "1" },
+    ],
+  },
+  {
+    title: "Connection",
+    fields: [
+      { param: "server", label: "Ontime server", type: "text", placeholder: "same as this page" },
+      { param: "token", label: "Access token", type: "text", placeholder: "none" },
+    ],
+  },
+];
+
+function initSettings() {
+  const cog = document.createElement("button");
+  cog.className = "settings-cog";
+  cog.type = "button";
+  cog.title = "View settings";
+  cog.setAttribute("aria-label", "View settings");
+  cog.innerHTML =
+    '<svg viewBox="0 0 512 512" aria-hidden="true">' +
+    '<path d="M262.29 192.31a64 64 0 1 0 57.4 57.4 64.13 64.13 0 0 0-57.4-57.4zM416.39 256a154.34 154.34 0 0 1-1.53 20.79l45.21 35.46a10.81 10.81 0 0 1 2.45 13.75l-42.77 74a10.81 10.81 0 0 1-13.14 4.59l-44.9-18.08a16.11 16.11 0 0 0-15.17 1.75A164.48 164.48 0 0 1 325 400.8a15.94 15.94 0 0 0-8.82 12.14l-6.73 47.89a11.08 11.08 0 0 1-10.68 9.17h-85.54a11.11 11.11 0 0 1-10.69-8.87l-6.72-47.82a16.07 16.07 0 0 0-9-12.22 155.3 155.3 0 0 1-21.46-12.57 16 16 0 0 0-15.11-1.71l-44.89 18.07a10.81 10.81 0 0 1-13.14-4.58l-42.77-74a10.8 10.8 0 0 1 2.45-13.75l38.21-30a16.05 16.05 0 0 0 6-14.08c-.36-4.17-.58-8.34-.58-12.5s.21-8.27.58-12.35a16 16 0 0 0-6.07-13.94l-38.19-30A10.81 10.81 0 0 1 49.48 186l42.77-74a10.81 10.81 0 0 1 13.14-4.59l44.9 18.08a16.11 16.11 0 0 0 15.17-1.75A164.48 164.48 0 0 1 187 111.2a15.94 15.94 0 0 0 8.82-12.14l6.73-47.89A11.08 11.08 0 0 1 213.23 42h85.54a11.11 11.11 0 0 1 10.69 8.87l6.72 47.82a16.07 16.07 0 0 0 9 12.22 155.3 155.3 0 0 1 21.46 12.57 16 16 0 0 0 15.11 1.71l44.89-18.07a10.81 10.81 0 0 1 13.14 4.58l42.77 74a10.8 10.8 0 0 1-2.45 13.75l-38.21 30a16.05 16.05 0 0 0-6 14.08c.36 4.16.58 8.32.58 12.49z" ' +
+    'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>';
+
+  const panel = document.createElement("aside");
+  panel.className = "settings-panel";
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "View settings");
+
+  const header = document.createElement("div");
+  header.className = "settings-panel__header";
+  header.innerHTML = "<h2>View settings</h2>";
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "settings-panel__close";
+  closeBtn.title = "Close";
+  closeBtn.textContent = "×";
+  header.appendChild(closeBtn);
+  panel.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "settings-panel__body";
+  panel.appendChild(body);
+
+  const params = new URLSearchParams(window.location.search);
+
+  // Which timers to show
+  const auxGroup = document.createElement("fieldset");
+  auxGroup.className = "settings-group";
+  auxGroup.innerHTML = "<legend>Timers</legend>";
+  const auxRow = document.createElement("div");
+  auxRow.className = "settings-aux";
+  const auxInputs = {};
+  for (const n of [1, 2, 3]) {
+    const wrap = document.createElement("label");
+    wrap.className = "settings-check";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selectedKeys.includes(`auxtimer${n}`);
+    auxInputs[n] = cb;
+    wrap.appendChild(cb);
+    wrap.appendChild(document.createTextNode(` Aux ${n}`));
+    auxRow.appendChild(wrap);
+  }
+  auxGroup.appendChild(auxRow);
+  body.appendChild(auxGroup);
+
+  const inputs = {};
+  for (const group of SETTINGS_GROUPS) {
+    const fs = document.createElement("fieldset");
+    fs.className = "settings-group";
+    const legend = document.createElement("legend");
+    legend.textContent = group.title;
+    fs.appendChild(legend);
+
+    for (const field of group.fields) {
+      const row = document.createElement("label");
+      row.className = "settings-row";
+      const span = document.createElement("span");
+      span.className = "settings-row__label";
+      span.textContent = field.label;
+
+      let input;
+      if (field.type === "flag") {
+        input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = params.has(field.param);
+        row.classList.add("settings-row--check");
+      } else if (field.type === "labels") {
+        input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = parseToggle(params.get("labels"), true);
+        row.classList.add("settings-row--check");
+      } else {
+        input = document.createElement("input");
+        input.type = field.type === "number" ? "number" : "text";
+        input.value = params.get(field.param) || "";
+        if (field.placeholder) input.placeholder = field.placeholder;
+      }
+      input.dataset.param = field.param;
+      input.dataset.type = field.type;
+      inputs[field.param] = input;
+
+      row.appendChild(span);
+      row.appendChild(input);
+      fs.appendChild(row);
+    }
+    body.appendChild(fs);
+  }
+
+  // Footer actions
+  const footer = document.createElement("div");
+  footer.className = "settings-panel__footer";
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.textContent = "Copy link";
+  const resetBtn = document.createElement("button");
+  resetBtn.type = "button";
+  resetBtn.textContent = "Reset";
+  footer.appendChild(copyBtn);
+  footer.appendChild(resetBtn);
+
+  panel.appendChild(footer);
+
+  // Serialise the form back into the URL and apply it live.
+  function commit() {
+    const p = new URLSearchParams(window.location.search);
+    const auxChecked = [1, 2, 3].filter((n) => auxInputs[n].checked);
+    if (auxChecked.length === 0 || auxChecked.length === 3) p.delete("aux");
+    else p.set("aux", auxChecked.join(","));
+
+    for (const field of SETTINGS_GROUPS.flatMap((g) => g.fields)) {
+      const input = inputs[field.param];
+      if (field.type === "flag") {
+        if (input.checked) p.set(field.param, "");
+        else p.delete(field.param);
+      } else if (field.type === "labels") {
+        if (input.checked) p.delete("labels");
+        else p.set("labels", "off");
+      } else {
+        const v = input.value.trim();
+        if (v) p.set(field.param, v);
+        else p.delete(field.param);
+      }
+    }
+
+    const qs = p.toString();
+    history.replaceState(null, "", location.pathname + (qs ? `?${qs}` : "") + location.hash);
+    applyFromUrl();
+  }
+
+  panel.addEventListener("input", commit);
+  panel.addEventListener("change", commit);
+
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+    } catch {
+      copyBtn.textContent = "Copy failed";
+      setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+    }
+  });
+  resetBtn.addEventListener("click", () => {
+    history.replaceState(null, "", location.pathname);
+    location.reload();
+  });
+
+  // Open / close + auto-hiding UI
+  let panelOpen = false;
+  let idleTimer = null;
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (!panelOpen) document.body.classList.remove("ui-active");
+    }, 3000);
+  }
+  function showUi() {
+    document.body.classList.add("ui-active");
+    resetIdle();
+  }
+  function openPanel() {
+    panelOpen = true;
+    document.body.classList.add("panel-open", "ui-active");
+    clearTimeout(idleTimer);
+  }
+  function closePanel() {
+    panelOpen = false;
+    document.body.classList.remove("panel-open");
+    resetIdle();
+  }
+
+  cog.addEventListener("click", () => (panelOpen ? closePanel() : openPanel()));
+  closeBtn.addEventListener("click", closePanel);
+  document.addEventListener("mousemove", showUi);
+  document.addEventListener("mousedown", showUi);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panelOpen) closePanel();
+  });
+
+  document.body.appendChild(cog);
+  document.body.appendChild(panel);
+  resetIdle();
+}
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+
 if (new URLSearchParams(window.location.search).has("demo")) {
   startDemo();
 } else {
   connect();
 }
+
+initSettings();
